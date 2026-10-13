@@ -1,0 +1,16 @@
+{"question": "Сколько дней отпуска положено сотруднику в год?", "expected_doc": "01_otpusk"}
+{"question": "Как перенести отпуск, если я заболел во время него?", "expected_doc": "01_otpusk"}
+{"question": "Сколько компенсируют за коворкинг на удалёнке?", "expected_doc": "02_udalenka"}
+{"question": "В какие часы нужно быть обязательно на связи при удалённой работе?", "expected_doc": "02_udalenka"}
+{"question": "Какие суточные при командировке за границу?", "expected_doc": "03_komandirovki"}
+{"question": "Когда разрешено лететь бизнес-классом?", "expected_doc": "03_komandirovki"}
+{"question": "Какой минимальной длины должен быть пароль?", "expected_doc": "04_security"}
+{"question": "Что делать, если пришло подозрительное письмо?", "expected_doc": "04_security"}
+{"question": "Сколько длится испытательный срок?", "expected_doc": "05_onboarding"}
+{"question": "Что такое buddy-программа?", "expected_doc": "05_onboarding"}
+{"question": "Покрывает ли страховка стоматологию?", "expected_doc": "06_benefits.en"}
+{"question": "Когда сотрудник получает право на опционы?", "expected_doc": "06_benefits.en"}
+{"question": "Does the insurance cover dental care?", "expected_doc": "06_benefits.en"}
+{"question": "How much is the coworking compensation?", "expected_doc": "02_udalenka"}
+{"question": "Каков лимит на отель в командировке по России?", "expected_doc": "03_komandirovki"}
+{"question": "Сколько wellness-дней даёт компания?", "expected_doc": "06_benefits.en"}

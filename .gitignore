@@ -1,0 +1,19 @@
+# виртуальные окружения и установленные библиотеки
+**/site-packages/
+**/Lib/
+**/Scripts/
+**/Include/
+**/pyvenv.cfg
+.venv/
+venv/
+
+# служебные файлы Python
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# секреты — никогда на GitHub!
+.env
+
+# индексы RAG (пересобираются автоматически)
+data/index/

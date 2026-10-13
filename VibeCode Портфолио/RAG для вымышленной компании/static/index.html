@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RAG Knowledge Assistant</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔎</text></svg>">
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --panel2: #1c2330; --border: #2d333b;
+    --text: #e6edf3; --muted: #8b949e; --accent: #4c8dff; --accent2: #a371f7;
+    --green: #3fb950; --yellow: #d29922; --user-bubble: #1f3a5f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    background: var(--bg); color: var(--text); height: 100vh;
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  header {
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--border); background: var(--panel);
+  }
+  header h1 { font-size: 17px; font-weight: 600; }
+  header h1 span { color: var(--accent); }
+  .badge {
+    font-size: 12px; padding: 3px 10px; border-radius: 12px;
+    border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+  }
+  .badge.ok { color: var(--green); border-color: var(--green); }
+  .badge.warn { color: var(--yellow); border-color: var(--yellow); }
+  .controls { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  select, button.ghost {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 6px 10px; font-size: 13px; cursor: pointer;
+  }
+  select:hover, button.ghost:hover { border-color: var(--accent); }
+  main { flex: 1; display: flex; min-height: 0; }
+  /* ---- чат ---- */
+  #chat-col { flex: 1.4; display: flex; flex-direction: column; min-width: 0; }
+  #messages { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { max-width: 85%; padding: 12px 16px; border-radius: 14px; line-height: 1.55; font-size: 14.5px; white-space: pre-wrap; word-wrap: break-word; }
+  .msg.user { align-self: flex-end; background: var(--user-bubble); border-bottom-right-radius: 4px; }
+  .msg.bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); border-bottom-left-radius: 4px; }
+  .msg .meta { display: block; margin-top: 8px; font-size: 11.5px; color: var(--muted); white-space: normal; }
+  .cite {
+    display: inline-block; background: rgba(76,141,255,.18); color: var(--accent);
+    border-radius: 6px; padding: 0 5px; font-size: 12.5px; cursor: pointer; font-weight: 600;
+  }
+  .cite:hover { background: rgba(76,141,255,.4); }
+  #chips { display: flex; gap: 8px; padding: 0 20px 10px; flex-wrap: wrap; }
+  .chip {
+    font-size: 12.5px; padding: 6px 12px; border-radius: 16px; cursor: pointer;
+    background: var(--panel2); border: 1px solid var(--border); color: var(--muted);
+  }
+  .chip:hover { color: var(--text); border-color: var(--accent); }
+  #input-row { display: flex; gap: 10px; padding: 12px 20px 16px; border-top: 1px solid var(--border); background: var(--panel); }
+  #question {
+    flex: 1; background: var(--panel2); border: 1px solid var(--border); color: var(--text);
+    border-radius: 10px; padding: 12px 14px; font-size: 14.5px; resize: none; font-family: inherit;
+  }
+  #question:focus { outline: none; border-color: var(--accent); }
+  #send {
+    background: var(--accent); border: none; color: #fff; border-radius: 10px;
+    padding: 0 22px; font-size: 15px; cursor: pointer; font-weight: 600;
+  }
+  #send:disabled { opacity: .5; cursor: default; }
+  /* ---- источники ---- */
+  #sources-col {
+    flex: 1; border-left: 1px solid var(--border); background: var(--panel);
+    display: flex; flex-direction: column; min-width: 0;
+  }
+  #sources-col h2 { font-size: 13.5px; color: var(--muted); padding: 14px 18px 8px; text-transform: uppercase; letter-spacing: .08em; }
+  #sources { flex: 1; overflow-y: auto; padding: 0 14px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .source-card {
+    background: var(--panel2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 11px 13px; font-size: 13px; scroll-margin-top: 10px;
+  }
+  .source-card.flash { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(76,141,255,.35); }
+  .source-card .head { display: flex; gap: 8px; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; }
+  .source-card .num { color: var(--accent); font-weight: 700; }
+  .source-card .doc { font-weight: 600; font-size: 13.5px; }
+  .source-card .ranks { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .source-card details summary { color: var(--muted); cursor: pointer; font-size: 12px; margin-top: 6px; }
+  .source-card .preview { color: var(--text); opacity: .83; line-height: 1.5; white-space: pre-wrap; }
+  .empty { color: var(--muted); font-size: 13px; padding: 10px 6px; }
+  @media (max-width: 900px) {
+    main { flex-direction: column; }
+    #sources-col { border-left: none; border-top: 1px solid var(--border); max-height: 40%; }
+  }
+  .typing { display: inline-flex; gap: 4px; padding: 4px 0; }
+  .typing i { width: 7px; height: 7px; background: var(--muted); border-radius: 50%; animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; } .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%, 80%, 100% { opacity: .25; } 40% { opacity: 1; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🔎 RAG <span>Knowledge Assistant</span></h1>
+  <span class="badge" id="mode-badge">…</span>
+  <span class="badge" id="stats-badge">…</span>
+  <div class="controls">
+    <label style="font-size:12.5px;color:var(--muted)">Поиск:
+      <select id="search-mode">
+        <option value="hybrid" selected>hybrid (dense + BM25)</option>
+        <option value="vector">vector only</option>
+        <option value="bm25">BM25 only</option>
+      </select>
+    </label>
+    <label style="font-size:12.5px;color:var(--muted)">top-k:
+      <select id="top-k">
+        <option>2</option><option>3</option><option selected>4</option><option>6</option><option>8</option>
+      </select>
+    </label>
+    <input type="file" id="file-input" accept=".txt,.md,.pdf" multiple hidden>
+    <button class="ghost" onclick="document.getElementById('file-input').click()">📄 Загрузить документы</button>
+  </div>
+</header>
+<main>
+  <section id="chat-col">
+    <div id="messages"></div>
+    <div id="chips">
+      <span class="chip">Сколько дней отпуска положено в год?</span>
+      <span class="chip">Какие суточные при загранкомандировке?</span>
+      <span class="chip">Что делать при подозрительном письме?</span>
+      <span class="chip">Сколько компенсируют за коворкинг?</span>
+      <span class="chip">Does the insurance cover dental care?</span>
+    </div>
+    <div id="input-row">
+      <textarea id="question" rows="1" placeholder="Задайте вопрос по базе знаний… (Enter — отправить, Shift+Enter — новая строка)"></textarea>
+      <button id="send" onclick="send()">➤</button>
+    </div>
+  </section>
+  <aside id="sources-col">
+    <h2>Источники</h2>
+    <div id="sources"><div class="empty">Источники появятся после первого вопроса — здесь видно, какие чанки нашёл retriever и их ранги в dense/sparse выдаче.</div></div>
+  </aside>
+</main>
+<script>
+const messagesEl = document.getElementById('messages');
+const sourcesEl = document.getElementById('sources');
+const questionEl = document.getElementById('question');
+const sendBtn = document.getElementById('send');
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderAnswer(text) {
+  let html = escapeHtml(text)
+    .replace(/\*([^*\n]+)\*/g, '<b>$1</b>')
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\[(\d+)\]/g, (m, n) => `<span class="cite" onclick="flashSource(${n})">[${n}]</span>`);
+  return html;
+}
+
+function flashSource(n) {
+  const card = document.getElementById('source-' + n);
+  if (!card) return;
+  card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  card.classList.add('flash');
+  setTimeout(() => card.classList.remove('flash'), 1600);
+}
+
+function addMessage(role, html, meta = '') {
+  const div = document.createElement('div');
+  div.className = 'msg ' + role;
+  div.innerHTML = html + (meta ? `<span class="meta">${meta}</span>` : '');
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
+}
+
+function renderSources(sources) {
+  if (!sources.length) {
+    sourcesEl.innerHTML = '<div class="empty">Ничего не найдено.</div>';
+    return;
+  }
+  sourcesEl.innerHTML = sources.map(s => `
+    <div class="source-card" id="source-${s.n}">
+      <div class="head">
+        <span class="num">[${s.n}]</span>
+        <span class="doc">${escapeHtml(s.doc_title)}</span>
+        <span class="ranks">RRF ${s.score.toFixed(4)} · dense #${s.dense_rank ?? '—'} · bm25 #${s.bm25_rank ?? '—'}</span>
+      </div>
+      <div class="preview">${escapeHtml(s.text.slice(0, 260))}${s.text.length > 260 ? '…' : ''}</div>
+      <details><summary>показать чанк целиком</summary><div class="preview">${escapeHtml(s.text)}</div></details>
+    </div>`).join('');
+}
+
+async function send() {
+  const question = questionEl.value.trim();
+  if (question.length < 2) return;
+  addMessage('user', escapeHtml(question));
+  questionEl.value = '';
+  sendBtn.disabled = true;
+  const botMsg = addMessage('bot', '<span class="typing"><i></i><i></i><i></i></span>');
+  const t0 = performance.now();
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        top_k: Number(document.getElementById('top-k').value),
+        search_mode: document.getElementById('search-mode').value,
+      }),
+    });
+    if (!resp.ok) throw new Error((await resp.json()).detail || resp.statusText);
+    const data = await resp.json();
+    const total = ((performance.now() - t0) / 1000).toFixed(1);
+    const t = data.timings;
+    const mode = data.llm_used ? 'LLM' : 'retrieval-only';
+    botMsg.innerHTML = renderAnswer(data.answer) +
+      `<span class="meta">${mode} · ${data.mode} · retrieval ${t.retrieval_ms} мс · generation ${t.generation_ms} мс · всего ${total} с</span>`;
+    renderSources(data.sources);
+  } catch (err) {
+    botMsg.innerHTML = '⚠️ Ошибка: ' + escapeHtml(String(err.message || err));
+  } finally {
+    sendBtn.disabled = false;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    questionEl.focus();
+  }
+}
+
+questionEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+document.querySelectorAll('.chip').forEach(chip =>
+  chip.addEventListener('click', () => { questionEl.value = chip.textContent; send(); }));
+
+document.getElementById('file-input').addEventListener('change', async (e) => {
+  if (!e.target.files.length) return;
+  const fd = new FormData();
+  for (const f of e.target.files) fd.append('files', f);
+  const msg = addMessage('bot', '⏳ Загружаю и переиндексирую документы…');
+  try {
+    const resp = await fetch('/api/upload', { method: 'POST', body: fd });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.detail);
+    msg.innerHTML = `✅ Загружено: ${escapeHtml(data.saved.join(', '))}. Всего в индексе: ${data.chunks} чанков из ${data.documents} документов.`;
+    loadStatus();
+  } catch (err) {
+    msg.innerHTML = '⚠️ ' + escapeHtml(String(err.message || err));
+  }
+  e.target.value = '';
+});
+
+async function loadStatus() {
+  try {
+    const s = await (await fetch('/api/status')).json();
+    const modeBadge = document.getElementById('mode-badge');
+    if (s.llm_enabled) {
+      modeBadge.textContent = '🧠 LLM: ' + s.llm_model;
+      modeBadge.className = 'badge ok';
+    } else {
+      modeBadge.textContent = '🔍 retrieval-only (без LLM-ключа)';
+      modeBadge.className = 'badge warn';
+    }
+    document.getElementById('stats-badge').textContent =
+      `${s.documents} документов · ${s.chunks} чанков · ${s.embed_model.split('/').pop()}`;
+  } catch { /* сервис ещё стартует */ }
+}
+
+loadStatus();
+setInterval(loadStatus, 15000);
+addMessage('bot', 'Привет! Я ассистент по базе знаний вымышленной компании «Небула». ' +
+  'Спросите про отпуска, удалёнку, командировки, информационную безопасность или бенефиты — ' +
+  'я найду ответ в документах и покажу источники.');
+</script>
+</body>
+</html>
